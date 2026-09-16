@@ -1,0 +1,25 @@
+# AXIO Shield — despliegue local del MVP demo.
+#   docker compose up --build
+# Portal:    http://localhost:8000/portal/
+# Dashboard: http://localhost:8000/dashboard/
+services:
+  shield-backend:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Sin API key -> modo STUB (demo offline, sin gastar tokens). Con key -> Claude real.
+      SHIELD_ANTHROPIC_API_KEY: "${SHIELD_ANTHROPIC_API_KEY:-}"
+      SHIELD_FORCE_STUB: "${SHIELD_FORCE_STUB:-0}"
+      SHIELD_MODEL_HAIKU: "${SHIELD_MODEL_HAIKU:-claude-haiku-4-5-20251001}"
+      SHIELD_MODEL_SONNET: "${SHIELD_MODEL_SONNET:-claude-sonnet-5}"
+      SHIELD_CORS_ORIGINS: "${SHIELD_CORS_ORIGINS:-*}"
+      SHIELD_WEBHOOK_URL: "${SHIELD_WEBHOOK_URL:-}"
+    volumes:
+      - shield-data:/data
+    restart: unless-stopped
+
+volumes:
+  shield-data:

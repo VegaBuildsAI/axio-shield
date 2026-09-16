@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Banco Demo · Banca en Línea</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- AXIO Shield SDK: sensor embebido. Solo envía metadata, nunca contenido. -->
+  <script src="/sdk/rules.js"></script>
+  <script src="/sdk/axio-shield.js" data-endpoint="/ingest"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◈</span> Banco Demo
+      <small>Banca en Línea</small>
+    </div>
+    <div class="shield-badge" title="Portal protegido por AXIO Shield">
+      🛡️ Protegido por <b>AXIO Shield</b>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Entorno de demostración (banco ficticio). No representa a ninguna entidad real. -->
+    <p class="demo-note">Entorno de demostración · Banco ficticio · Datos 100% sintéticos</p>
+
+    <!-- LOGIN -->
+    <section id="login-view" class="card">
+      <h1>Ingresá a tu cuenta</h1>
+      <form id="login-form" name="login" data-axio-id="login" autocomplete="off">
+        <label>Usuario
+          <input type="text" name="usuario" placeholder="cédula o usuario" required />
+        </label>
+        <label>Contraseña
+          <input type="password" name="clave" placeholder="••••••••" required />
+        </label>
+        <button type="submit">Ingresar</button>
+      </form>
+      <p class="hint">Demo: cualquier usuario/clave ingresa.</p>
+    </section>
+
+    <!-- PANEL (post-login) -->
+    <section id="app-view" class="card" hidden>
+      <h1>Hola, bienvenido</h1>
+      <div class="balance">
+        <span>Cuenta de ahorros ···4821</span>
+        <strong>₡ 2.480.350,00</strong>
+      </div>
+
+      <h2>Transferencia SINPE</h2>
+      <form id="transfer-form" name="transfer" data-axio-id="transfer" autocomplete="off">
+        <label>Cuenta destino
+          <input type="text" name="destino" placeholder="IBAN o teléfono" required />
+        </label>
+        <label>Monto (₡)
+          <input type="number" name="monto" placeholder="0.00" min="1" required />
+        </label>
+        <label>Concepto / mensaje
+          <textarea name="concepto" rows="3" placeholder="Detalle de la transferencia"></textarea>
+        </label>
+        <button type="submit">Enviar transferencia</button>
+      </form>
+
+      <div id="result" class="result" hidden></div>
+      <button id="logout" class="link">Cerrar sesión</button>
+    </section>
+  </main>
+
+  <footer class="foot">
+    Banco Demo · Ejemplo de portal para demostrar AXIO Shield · © AXIO
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

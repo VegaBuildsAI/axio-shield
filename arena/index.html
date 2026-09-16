@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AXIO Shield · War Room</title>
+  <!-- rules.js: escanea el payload manual localmente (solo salen labels, no el texto) -->
+  <script src="/sdk/rules.js"></script>
+  <style>
+    :root {
+      --bg:#0a0f1a; --panel:#111a2b; --panel2:#0d1524; --ink:#e6edf6; --muted:#8195ad;
+      --line:#233146; --atk:#ef4444; --atk2:#fb7185; --def:#2dd4bf; --def2:#38bdf8;
+      --info:#64748b; --watch:#eab308; --contain:#f97316; --eliminate:#ef4444;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,sans-serif;}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;}
+    .title{font-size:18px;font-weight:800;} .title span{color:var(--def);}
+    .title small{display:block;font-size:11px;color:var(--muted);font-weight:400;}
+    .links{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .links a,#conn{font-size:12px;padding:6px 11px;border-radius:7px;border:1px solid var(--line);
+      background:var(--panel2);color:var(--ink);text-decoration:none;}
+    #conn.ok{color:var(--def);} #conn.down{color:var(--atk);}
+
+    .control{padding:14px 20px;background:var(--panel2);border-bottom:1px solid var(--line);}
+    .control h2{margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--atk2);}
+    .btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+    .btns button{font-size:13px;font-weight:600;padding:9px 14px;border-radius:8px;cursor:pointer;
+      border:1px solid var(--line);background:#1b2740;color:var(--ink);}
+    .btns button.atk{border-color:var(--atk);background:#2a1220;color:var(--atk2);}
+    .btns button:hover{filter:brightness(1.2);}
+    .btns input[type=number]{width:56px;padding:8px;border-radius:7px;border:1px solid var(--line);
+      background:#0d1524;color:var(--ink);}
+    .manual{display:flex;gap:8px;margin-top:10px;}
+    .manual input{flex:1;padding:9px 12px;border-radius:8px;border:1px solid var(--line);
+      background:#0d1524;color:var(--ink);font-size:13px;}
+
+    .stats{display:flex;gap:12px;padding:12px 20px;flex-wrap:wrap;}
+    .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 16px;min-width:96px;}
+    .stat b{display:block;font-size:22px;} .stat span{font-size:11px;color:var(--muted);}
+    .stat.atk b{color:var(--atk2);} .stat.def b{color:var(--def);}
+
+    .arena{display:grid;grid-template-columns:1fr 44px 1fr;gap:10px;padding:0 20px 16px;align-items:start;}
+    @media(max-width:820px){.arena{grid-template-columns:1fr;} .vs{display:none;}}
+    .side h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:6px 0 10px;}
+    .side.att h3{color:var(--atk2);} .side.def h3{color:var(--def);}
+    .vs{align-self:center;text-align:center;color:var(--muted);font-weight:800;font-size:14px;}
+    .agent{display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);
+      border-radius:10px;padding:10px 12px;margin-bottom:9px;transition:box-shadow .2s,border-color .2s,transform .1s;}
+    .agent .ico{font-size:22px;width:30px;text-align:center;}
+    .agent .body{flex:1;min-width:0;}
+    .agent .nm{font-weight:700;font-size:14px;}
+    .agent .ds{font-size:11px;color:var(--muted);}
+    .agent .act{font-size:11px;color:var(--muted);margin-top:2px;height:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .side.att .agent.active{border-color:var(--atk);box-shadow:0 0 0 2px rgba(239,68,68,.35),0 0 18px rgba(239,68,68,.25);transform:translateY(-1px);}
+    .side.att .agent.active .act{color:var(--atk2);}
+    .side.def .agent.active{border-color:var(--def);box-shadow:0 0 0 2px rgba(45,212,191,.35),0 0 18px rgba(45,212,191,.25);transform:translateY(-1px);}
+    .side.def .agent.active .act{color:var(--def);}
+    .badge{font-size:9px;padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:middle;}
+    .badge.codex{background:#3a2618;color:#fbbf24;} .badge.arena{background:#12351f;color:#4ade80;}
+
+    .timeline{padding:0 20px 30px;}
+    .timeline h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+    .row{display:flex;gap:10px;align-items:baseline;font-size:12px;padding:6px 10px;border-radius:7px;margin-bottom:5px;
+      background:var(--panel);border-left:3px solid var(--line);}
+    .row.attack{border-left-color:var(--atk);} .row.defense{border-left-color:var(--def);}
+    .row.incident{border-left-color:var(--contain);background:#16121f;}
+    .row .t{color:var(--muted);font-variant-numeric:tabular-nums;} .row .who{font-weight:700;}
+    .row.attack .who{color:var(--atk2);} .row.defense .who{color:var(--def);} .row.incident .who{color:var(--contain);}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">🛡️ AXIO <span>Shield</span> · War Room
+      <small>Atacante vs Defensa en vivo · atacantes: Codex + Arena</small></div>
+    <div class="links">
+      <span id="conn" class="down">desconectado</span>
+      <a href="/portal/" target="_blank">Portal</a>
+      <a href="/dashboard/" target="_blank">Dashboard SOC</a>
+    </div>
+  </header>
+
+  <div class="control">
+    <h2>🎯 Vos sos el atacante — lanzá un ataque contra la página</h2>
+    <div class="btns">
+      <button class="atk" data-scn="injection">Prompt Injection</button>
+      <button class="atk" data-scn="ai_browser">AI Browser</button>
+      <button class="atk" data-scn="swarm">Swarm</button>
+      <span style="color:var(--muted);font-size:12px;">sesiones</span>
+      <input id="sessions" type="number" min="3" max="12" value="4" />
+      <button data-scn="baseline">Tráfico legítimo</button>
+    </div>
+    <div class="btns" style="margin-top:8px;">
+      <span style="color:var(--muted);font-size:12px;">Agénticos:</span>
+      <button class="atk" data-scn="tool_poisoning">Tool Poisoning</button>
+      <button class="atk" data-scn="memory_poisoning">Memory Poisoning</button>
+      <button class="atk" data-scn="identity_abuse">Identity Abuse</button>
+      <button class="atk" data-scn="chain">Cadena multietapa</button>
+      <button class="atk" data-scn="adaptive">Adaptativo</button>
+      <button class="atk" data-scn="sdk_bypass">SDK Bypass (directo a API)</button>
+    </div>
+    <div class="btns" style="margin-top:8px;">
+      <span style="color:var(--muted);font-size:12px;">AD lab (MITRE ATT&amp;CK):</span>
+      <button class="atk" data-scn="enumeration">Enumeración (T1087)</button>
+      <button class="atk" data-scn="credential_harvest">Credential Harvest (T1558)</button>
+      <button class="atk" data-scn="lateral_movement">Lateral Movement (T1550)</button>
+      <button class="atk" data-scn="privilege_escalation">Priv-Esc (T1068)</button>
+      <button class="atk" data-scn="persistence">Persistence (T1136)</button>
+    </div>
+    <div class="manual">
+      <input id="payload" placeholder="Escribí tu payload de ataque (ej: Ignore all previous instructions...)" />
+      <button class="atk" id="launch-manual">Lanzar manual</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat atk"><b id="s-att">0</b><span>Acciones de ataque</span></div>
+    <div class="stat def"><b id="s-det">0</b><span>Detectados</span></div>
+    <div class="stat def"><b id="s-con">0</b><span>Contenidos</span></div>
+    <div class="stat def"><b id="s-swarm">0</b><span>Swarms</span></div>
+    <div class="stat"><b id="s-mode">—</b><span>Motor</span></div>
+  </div>
+
+  <div class="arena">
+    <div class="side att" id="attackers"><h3>⚔️ Agentes atacantes</h3></div>
+    <div class="vs">VS</div>
+    <div class="side def" id="defenders"><h3>🛡️ Agentes defensores</h3></div>
+  </div>
+
+  <div class="timeline">
+    <h3>Línea de tiempo (ataque ↔ defensa)</h3>
+    <div id="feed"></div>
+  </div>
+
+  <script src="arena.js"></script>
+</body>
+</html>

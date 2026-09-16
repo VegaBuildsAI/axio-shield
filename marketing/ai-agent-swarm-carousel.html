@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Agentic Attack Surface — Social Carousel</title>
+  <style>
+    :root {
+      --ink: #070a0f;
+      --panel: #0c1119;
+      --panel-2: #111a25;
+      --paper: #f2f5f7;
+      --muted: #9caab5;
+      --line: rgba(242,245,247,.15);
+      --cyan: #72e6ff;
+      --cyan-deep: #1a7892;
+      --amber: #ffb547;
+      --coral: #ff5d73;
+      --green: #8ee2b2;
+      --mono: "IBM Plex Mono", "Courier New", monospace;
+      --display: "Arial Narrow", "Segoe UI", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: #222832; }
+    body {
+      margin: 0;
+      padding: 48px 0;
+      background: #222832;
+      color: var(--paper);
+      font-family: var(--display);
+    }
+
+    .deck { display: grid; gap: 48px; justify-items: center; }
+    .slide {
+      position: relative;
+      width: min(1080px, 92vw);
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      isolation: isolate;
+      background: var(--ink);
+      box-shadow: 0 24px 72px rgba(0,0,0,.36);
+    }
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      background:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: linear-gradient(to bottom, black, transparent 82%);
+    }
+    .slide::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 72% 18%, rgba(114,230,255,.10), transparent 28%),
+                  radial-gradient(circle at 25% 88%, rgba(255,93,115,.08), transparent 24%);
+      z-index: -1;
+    }
+
+    .frame { position: absolute; inset: 6.3%; display: flex; flex-direction: column; }
+    .topline { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font: 700 14px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+    .kicker { color: var(--cyan); }
+    .status { display: inline-flex; gap: 9px; align-items: center; }
+    .status::before { content: ""; width: 8px; height: 8px; background: var(--coral); border-radius: 50%; box-shadow: 0 0 16px var(--coral); }
+    .number { color: var(--paper); }
+    .rule { height: 1px; width: 100%; margin-top: 20px; background: var(--line); }
+    .headline { margin: 9% 0 0; max-width: 91%; font-size: clamp(48px, 7.2vw, 92px); line-height: .91; letter-spacing: -.055em; font-weight: 800; text-transform: uppercase; }
+    .headline em { color: var(--cyan); font-style: normal; }
+    .headline .hot { color: var(--coral); }
+    .dek { max-width: 680px; margin: 26px 0 0; color: var(--muted); font-size: clamp(20px, 2.3vw, 29px); line-height: 1.2; letter-spacing: -.01em; }
+    .micro { color: var(--muted); font: 13px/1.35 var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+    .footer { margin-top: auto; display: flex; justify-content: space-between; align-items: end; }
+    .footer strong { display: block; color: var(--paper); font-size: 18px; letter-spacing: .02em; }
+
+    /* Shared swarm drawing language */
+    .swarm-map { position: absolute; inset: 0; pointer-events: none; z-index: -1; opacity: .95; }
+    .swarm-map line { stroke: var(--coral); stroke-width: 2; opacity: .36; stroke-dasharray: 5 13; }
+    .swarm-map circle.node { fill: var(--coral); stroke: var(--ink); stroke-width: 7; }
+    .swarm-map circle.core { fill: var(--amber); stroke: var(--ink); stroke-width: 10; }
+    .swarm-map text { fill: var(--muted); font: 13px var(--mono); letter-spacing: .06em; }
+
+    .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12%; }
+    .metric { padding: 18px 0; border-top: 1px solid var(--line); }
+    .metric b { display: block; color: var(--paper); font: 700 clamp(28px, 4vw, 44px)/1 var(--mono); letter-spacing: -.08em; }
+    .metric span { display: block; margin-top: 10px; color: var(--muted); font: 11px/1.35 var(--mono); text-transform: uppercase; }
+
+    .role-stack { display: grid; gap: 10px; margin-top: 9%; max-width: 760px; }
+    .role { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 16px; padding: 15px 18px; border: 1px solid var(--line); background: rgba(12,17,25,.82); }
+    .role .idx { color: var(--coral); font: 700 13px var(--mono); }
+    .role strong { font-size: 20px; letter-spacing: .01em; }
+    .role span { color: var(--muted); font: 12px var(--mono); text-transform: uppercase; }
+
+    .blindspot { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 12%; border: 1px solid var(--line); }
+    .blindspot > div { min-height: 210px; padding: 24px; }
+    .blindspot .old { background: rgba(255,93,115,.05); border-right: 1px solid var(--line); }
+    .blindspot .new { background: rgba(114,230,255,.08); }
+    .blindspot h3 { margin: 0 0 18px; color: var(--muted); font: 700 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .blindspot p { margin: 0; font-size: 25px; line-height: 1.04; letter-spacing: -.03em; }
+    .blindspot .new p { color: var(--cyan); }
+
+    .defense-ring { position: absolute; right: -6%; bottom: 8%; width: 64%; aspect-ratio: 1; border: 1px solid rgba(114,230,255,.25); border-radius: 50%; box-shadow: 0 0 0 32px rgba(114,230,255,.035), 0 0 0 72px rgba(114,230,255,.02); }
+    .defense-ring::before, .defense-ring::after { content: ""; position: absolute; inset: 16%; border: 1px dashed rgba(114,230,255,.42); border-radius: 50%; }
+    .defense-ring::after { inset: 36%; border-style: solid; border-color: rgba(114,230,255,.62); }
+    .portal-core { position: absolute; inset: 42%; display: grid; place-items: center; border: 1px solid var(--cyan); background: rgba(7,10,15,.92); color: var(--cyan); font: 700 11px var(--mono); letter-spacing: .08em; text-align: center; }
+    .agent-tag { position: absolute; padding: 9px 11px; color: var(--ink); background: var(--cyan); font: 700 11px var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+    .tag-a { top: 17%; left: 6%; } .tag-b { top: 47%; right: 4%; } .tag-c { bottom: 17%; left: 10%; } .tag-d { bottom: 5%; right: 22%; }
+
+    .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 15%; border-top: 1px solid var(--cyan-deep); border-bottom: 1px solid var(--cyan-deep); }
+    .pipe { position: relative; min-height: 150px; padding: 20px 14px; border-right: 1px solid var(--cyan-deep); background: rgba(114,230,255,.04); }
+    .pipe:last-child { border-right: 0; }
+    .pipe::after { content: "→"; position: absolute; top: 50%; right: -10px; color: var(--cyan); font: 20px var(--mono); background: var(--ink); }
+    .pipe:last-child::after { display: none; }
+    .pipe b { display: block; color: var(--cyan); font: 700 13px var(--mono); text-transform: uppercase; }
+    .pipe span { display: block; margin-top: 14px; font-size: 20px; line-height: 1.03; }
+    .human-gate { display: inline-flex; align-items: center; gap: 10px; margin-top: 34px; padding: 12px 15px; border: 1px solid var(--amber); color: var(--amber); font: 700 12px var(--mono); text-transform: uppercase; }
+    .human-gate::before { content: "⊙"; font-size: 20px; }
+
+    .final-cta { margin-top: 10%; max-width: 780px; }
+    .final-cta .headline { margin-top: 0; }
+    .cta-line { display: flex; align-items: center; gap: 15px; margin-top: 44px; color: var(--cyan); font: 700 16px var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+    .cta-line::after { content: ""; width: 120px; height: 1px; background: var(--cyan); }
+    .source-note { max-width: 650px; color: #73828e; font: 11px/1.45 var(--mono); }
+
+    @media (max-width: 700px) {
+      body { padding: 18px 0; }
+      .deck { gap: 18px; }
+      .frame { inset: 7%; }
+      .role { grid-template-columns: 30px 1fr; }
+      .role span { grid-column: 2; }
+      .blindspot { grid-template-columns: 1fr; }
+      .blindspot .old { border-right: 0; border-bottom: 1px solid var(--line); }
+      .blindspot > div { min-height: 150px; }
+      .pipeline { grid-template-columns: repeat(2, 1fr); }
+      .pipe:nth-child(2) { border-right: 0; }
+      .pipe:nth-child(-n+2) { border-bottom: 1px solid var(--cyan-deep); }
+      .pipe::after { display: none; }
+      .defense-ring { width: 75%; right: -18%; bottom: 12%; }
+    }
+
+    @media print {
+      html, body { background: white; padding: 0; }
+      .deck { display: block; }
+      .slide { width: 1080px; height: 1350px; margin: 0; box-shadow: none; page-break-after: always; }
+      .slide:last-child { page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="The Agentic Attack Surface social carousel">
+    <article class="slide">
+      <svg class="swarm-map" viewBox="0 0 1080 1350" aria-hidden="true">
+        <line x1="740" y1="370" x2="900" y2="210"/><line x1="740" y1="370" x2="1000" y2="450"/><line x1="740" y1="370" x2="865" y2="680"/><line x1="740" y1="370" x2="560" y2="540"/><line x1="740" y1="370" x2="920" y2="880"/>
+        <circle class="core" cx="740" cy="370" r="25"/><circle class="node" cx="900" cy="210" r="13"/><circle class="node" cx="1000" cy="450" r="13"/><circle class="node" cx="865" cy="680" r="13"/><circle class="node" cx="560" cy="540" r="13"/><circle class="node" cx="920" cy="880" r="13"/>
+        <text x="768" y="365">COORDINATOR</text><text x="926" y="205">RECON</text><text x="1018" y="445">TOOL</text><text x="886" y="676">IDENTITY</text><text x="485" y="535">DATA</text><text x="935" y="876">EXFIL</text>
+      </svg>
+      <div class="frame">
+        <div class="topline"><span class="kicker">THE AGENTIC ATTACK SURFACE</span><span class="status">LIVE INCIDENT <span class="number">01 / 05</span></span></div>
+        <div class="rule"></div>
+        <h1 class="headline">The attacker<br>is no longer<br><em>a person.</em></h1>
+        <p class="dek">AI agents can observe, coordinate, adapt and act across the same website your customers use every day.</p>
+        <div class="metric-row">
+          <div class="metric"><b>01</b><span>operator</span></div>
+          <div class="metric"><b>∞</b><span>automated decisions</span></div>
+          <div class="metric"><b>24/7</b><span>attack surface</span></div>
+        </div>
+        <div class="footer"><span class="micro">Awareness brief / 2026</span><strong>Security for the agentic web.</strong></div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <svg class="swarm-map" viewBox="0 0 1080 1350" aria-hidden="true">
+        <line x1="180" y1="1030" x2="330" y2="820"/><line x1="330" y1="820" x2="510" y2="1010"/><line x1="510" y1="1010" x2="690" y2="760"/><line x1="690" y1="760" x2="900" y2="950"/><line x1="330" y1="820" x2="690" y2="760"/>
+        <circle class="node" cx="180" cy="1030" r="14"/><circle class="node" cx="330" cy="820" r="20"/><circle class="node" cx="510" cy="1010" r="14"/><circle class="core" cx="690" cy="760" r="24"/><circle class="node" cx="900" cy="950" r="14"/>
+      </svg>
+      <div class="frame">
+        <div class="topline"><span class="kicker">THREAT MODEL / COORDINATION</span><span class="number">02 / 05</span></div>
+        <div class="rule"></div>
+        <h2 class="headline">One session<br>can look<br><span class="hot">harmless.</span></h2>
+        <p class="dek">The threat appears when multiple agents share timing, tactics, identities and outcomes.</p>
+        <div class="role-stack">
+          <div class="role"><span class="idx">01</span><strong>Recon agent</strong><span>maps the surface</span></div>
+          <div class="role"><span class="idx">02</span><strong>Tool agent</strong><span>abuses trusted actions</span></div>
+          <div class="role"><span class="idx">03</span><strong>Identity agent</strong><span>tests the boundary</span></div>
+          <div class="role"><span class="idx">04</span><strong>Data agent</strong><span>looks for valuable context</span></div>
+          <div class="role"><span class="idx">05</span><strong>Exfil agent</strong><span>moves the canary</span></div>
+        </div>
+        <div class="footer"><span class="micro">The pattern is collective.</span><strong>Not every node looks malicious.</strong></div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="frame">
+        <div class="topline"><span class="kicker">WHY LEGACY CONTROLS MISS IT</span><span class="number">03 / 05</span></div>
+        <div class="rule"></div>
+        <h2 class="headline">They don't need<br>to break in<br>the <span class="hot">front door.</span></h2>
+        <p class="dek">They can turn trusted workflows into attack paths: prompts, tools, identities, memory and automation.</p>
+        <div class="blindspot">
+          <div class="old"><h3>Session-by-session view</h3><p>“Nothing unusual here.”</p></div>
+          <div class="new"><h3>Agent-aware view</h3><p>“These sessions are coordinating.”</p></div>
+        </div>
+        <div class="pipeline">
+          <div class="pipe"><b>01 / signal</b><span>Fast timing</span></div>
+          <div class="pipe"><b>02 / trust</b><span>Tool metadata</span></div>
+          <div class="pipe"><b>03 / boundary</b><span>Tenant crossing</span></div>
+          <div class="pipe"><b>04 / outcome</b><span>Data movement</span></div>
+        </div>
+        <div class="footer"><span class="micro">The blind spot is the relationship.</span><strong>Visibility has to cross sessions.</strong></div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="frame">
+        <div class="topline"><span class="kicker">THE DEFENSIVE LAYER</span><span class="number">04 / 05</span></div>
+        <div class="rule"></div>
+        <div class="final-cta">
+          <h2 class="headline">Meet the<br><em>security agents</em><br>inside the website.</h2>
+          <p class="dek">They turn agentic behavior into a signal you can detect, correlate, verify and contain.</p>
+          <div class="human-gate">High-impact actions stay human-controlled</div>
+        </div>
+        <div class="defense-ring" aria-hidden="true">
+          <div class="portal-core">WEBSITE<br>PERIMETER</div>
+          <span class="agent-tag tag-a">DETECT</span><span class="agent-tag tag-b">CORRELATE</span><span class="agent-tag tag-c">VERIFY</span><span class="agent-tag tag-d">CONTAIN</span>
+        </div>
+        <div class="footer"><span class="micro">Metadata first / evidence always</span><strong>Defend the behavior, not only the request.</strong></div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="frame">
+        <div class="topline"><span class="kicker">THE QUESTION FOR EVERY DIGITAL BUSINESS</span><span class="number">05 / 05</span></div>
+        <div class="rule"></div>
+        <div class="final-cta">
+          <h2 class="headline">If your website<br>can be used by<br>an <em>agent,</em><br>it can be attacked<br>by an agent.</h2>
+          <p class="dek">Make the agentic attack surface visible before a coordinated workflow becomes a breach.</p>
+          <div class="cta-line">Secure the agentic surface</div>
+        </div>
+        <p class="source-note">Built for websites where humans and AI agents interact. Detection, cross-session correlation, identity verification, canary-based containment and auditable human gates.</p>
+        <div class="footer"><span class="micro">Security agents for the agentic web.</span><strong>Start with visibility.</strong></div>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

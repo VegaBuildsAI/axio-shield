@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AXIO Shield · SOC</title>
+  <style>
+    :root {
+      --bg: #0b1220; --panel: #121c2e; --panel2: #0f1826; --ink: #e6edf6;
+      --muted: #8195ad; --line: #223146; --accent: #2dd4bf; --brand: #38bdf8;
+      --info: #64748b; --watch: #eab308; --contain: #f97316; --eliminate: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+      font-family: "Segoe UI", system-ui, sans-serif; }
+    header { display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 22px; background: var(--panel); border-bottom: 1px solid var(--line); }
+    .title { font-size: 18px; font-weight: 700; }
+    .title span { color: var(--accent); }
+    .tag { font-size: 11px; color: var(--muted); }
+    .controls { display: flex; gap: 8px; align-items: center; }
+    .controls button, .controls a { font-size: 12px; padding: 7px 12px; border-radius: 7px;
+      border: 1px solid var(--line); background: var(--panel2); color: var(--ink);
+      cursor: pointer; text-decoration: none; }
+    .controls button:hover { border-color: var(--accent); }
+    #conn { font-size: 11px; padding: 4px 10px; border-radius: 999px; background: #1c2b3f; }
+    #conn.ok { color: var(--accent); } #conn.down { color: var(--eliminate); }
+    .stats { display: flex; gap: 14px; padding: 14px 22px; }
+    .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+      padding: 12px 18px; min-width: 110px; }
+    .stat b { display: block; font-size: 24px; } .stat span { font-size: 11px; color: var(--muted); }
+    main { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; padding: 0 22px 22px; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    .col h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--muted); margin: 6px 0 12px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-left-width: 4px;
+      border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+    .card.INFO { border-left-color: var(--info); } .card.WATCH { border-left-color: var(--watch); }
+    .card.CONTAIN { border-left-color: var(--contain); } .card.ELIMINATE { border-left-color: var(--eliminate); }
+    .card .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; color: #08101c; }
+    .badge.INFO { background: var(--info); color: #fff; } .badge.WATCH { background: var(--watch); }
+    .badge.CONTAIN { background: var(--contain); } .badge.ELIMINATE { background: var(--eliminate); color:#fff; }
+    .owasp { font-weight: 700; color: var(--brand); }
+    .meta { font-size: 12px; color: var(--muted); margin: 6px 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+    .chip { font-size: 10px; background: #1c2b3f; border: 1px solid var(--line);
+      padding: 2px 7px; border-radius: 999px; color: var(--muted); }
+    .rationale { font-size: 12px; color: var(--ink); opacity: .85; margin: 6px 0; }
+    .swarm { background: #2a1220; border: 1px solid #6b2340; border-radius: 8px;
+      padding: 8px 10px; margin: 8px 0; font-size: 12px; }
+    .swarm b { color: #fb7185; }
+    .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .actions button { font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+      border: 1px solid var(--line); background: var(--panel2); color: var(--ink); }
+    .actions button:hover { border-color: var(--contain); }
+    .status { font-size: 11px; padding: 3px 9px; border-radius: 999px; }
+    .status.contained { background: #12351f; color: #4ade80; }
+    .status.dismissed { background: #2a2f3a; color: var(--muted); }
+    .status.open { background: #3a2618; color: #fbbf24; }
+    #graph { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; }
+    .empty { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+    .roadmap { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="title">🛡️ AXIO <span>Shield</span> · SOC</div>
+      <div class="tag">Defenders That Never Sleep</div>
+    </div>
+    <div class="controls">
+      <span id="conn" class="down">desconectado</span>
+      <button id="verify">Verificar audit log</button>
+      <a id="export" href="/api/audit/export" target="_blank">Exportar auditoría</a>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><b id="s-total">0</b><span>Incidentes</span></div>
+    <div class="stat"><b id="s-contain">0</b><span>Contenidos</span></div>
+    <div class="stat"><b id="s-swarm">0</b><span>Swarms detectados</span></div>
+    <div class="stat"><b id="s-mode">—</b><span>Motor</span></div>
+  </div>
+
+  <main>
+    <div class="col">
+      <h2>Incidentes en vivo</h2>
+      <div id="feed"><div class="empty">Esperando eventos del portal…</div></div>
+    </div>
+    <div class="col">
+      <h2>Grafo de swarm (TRACKER)</h2>
+      <svg id="graph" width="100%" height="300" viewBox="0 0 400 300"></svg>
+      <div id="graph-info" class="empty">Sin coordinación de swarm detectada.</div>
+      <h2 style="margin-top:18px">Roadmap (no en este MVP)</h2>
+      <div class="roadmap">
+        ◦ MIMIC — honeypots dinámicos inyectados en el DOM<br />
+        ◦ SPECTER — defensa A2A + verificación de identidad (SPIFFE)<br />
+        ◦ Integración WAF real (Cloudflare / ModSecurity) · Email gateway
+      </div>
+    </div>
+  </main>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
