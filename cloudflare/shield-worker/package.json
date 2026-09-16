@@ -1,0 +1,15 @@
+{
+  "name": "axio-shield-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AXIO Shield — Cloudflare Worker (defensa agéntica, mismo-origen /shield/*)",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node tests/parity.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

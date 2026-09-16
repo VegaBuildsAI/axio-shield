@@ -1,0 +1,26 @@
+{
+  // AXIO Shield — Worker nativo (mismo patrón que agent-gateway).
+  // Mismo-origen bajo /shield/* en www.axiostaging.com (no rompe el CSP del sitio).
+  "name": "axio-shield-gateway",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-06",
+  "vars": {
+    "PUBLIC_SITE_ORIGIN": "https://www.axiostaging.com",
+    // IDs de modelo Claude (configurables). Sin ANTHROPIC_API_KEY -> modo stub determinista.
+    "SHIELD_MODEL_HAIKU": "claude-haiku-4-5-20251001",
+    "SHIELD_MODEL_SONNET": "claude-sonnet-5"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "SHIELD", "class_name": "ShieldStore" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["ShieldStore"] }
+  ],
+  "observability": { "enabled": true },
+  // En deploy, montar mismo-origen. Descomentar cuando la zona esté lista:
+  // "routes": [
+  //   { "pattern": "www.axiostaging.com/shield/*", "zone_name": "axiostaging.com" }
+  // ]
+}
