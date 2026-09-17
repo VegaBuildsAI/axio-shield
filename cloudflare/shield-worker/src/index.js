@@ -101,11 +101,20 @@ export default {
         const req = parsed.value
         if (!req || typeof req !== 'object' || Array.isArray(req)) return json({ ok: false, error: 'request_must_be_object' }, 400)
         const headers = Object.fromEntries(Object.entries(req.headers || {}).map(([k, v]) => [k.toLowerCase(), v]))
+        // Campos opcionales para tapear superficies agénticas (A2A/MCP/API):
+        // source e identity permiten a SPECTER (a2a_spoof) y al attack-path distinguir agentes.
+        const extra = { source: req.source || 'waf_tap' }
+        if (req.agent_id) extra.agent_id = String(req.agent_id).slice(0, 200)
+        if (req.extra && typeof req.extra === 'object' && !Array.isArray(req.extra)) {
+          for (const [k, v] of Object.entries(req.extra)) {
+            if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') extra[k] = v
+          }
+        }
         const event = {
           session_id: req.session_id || headers['x-session-id'] || ('tap_' + crypto.randomUUID().slice(0, 12)),
           kind: 'xhr', path: req.path || '/', ua: headers['user-agent'] || '',
           client_matches: [], server_matches: scanText(req.body || ''),
-          features: { body_len: (req.body || '').length }, extra: { source: 'waf_tap' },
+          features: { body_len: (req.body || '').length }, extra,
         }
         return json(await s.ingest(event))
       }
@@ -116,6 +125,20 @@ export default {
       if (p === '/shield/api/attack-graph') return json(await s.attackGraph())
       if (p === '/shield/api/audit/export') return json(await s.auditAll())
       if (p === '/shield/api/audit/verify') return json(await s.verifyChain())
+
+      // Posture read-only (para descubribilidad MCP/A2A). NO expone incidentes ni PII.
+      if (p === '/shield/api/posture') {
+        const cov = await s.coverage(); const audit = await s.verifyChain()
+        return json({
+          product: 'AXIO Shield', mode: shieldMode(env), enforcement_enabled: false,
+          engine: env.ANTHROPIC_API_KEY ? 'claude+deterministic' : 'deterministic',
+          frameworks: ['OWASP Agentic Top 10', 'MITRE ATT&CK', 'MITRE ATLAS'],
+          techniques_covered: cov.summary.con_regla,
+          techniques_exercised: cov.summary.ejercidas_y_detectadas,
+          audit_valid: audit.valid,
+          defenders: ['SENTINEL', 'ORACLE', 'TRACKER++', 'WARDEN', 'SPECTER', 'HERALD', 'LOCKDOWN', 'SCRIBE'],
+        })
+      }
 
       const m = p.match(/^\/shield\/api\/incidents\/([^/]+)\/action$/)
       if (m && request.method === 'POST') {
