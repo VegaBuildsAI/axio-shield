@@ -29,14 +29,14 @@ Navegador (www.axiostaging.com)
 Cloudflare  ── route: www.axiostaging.com/shield/*  ──▶  Worker axio-shield-gateway
    (Pages sirve el resto del sitio)                        │  Durable Object ShieldStore (SQLite)
    (Worker agent-gateway intacto en su ruta)               │  DO WebSocket  → /shield/ws
-                                                           │  fetch → api.anthropic.com (Haiku/Sonnet)
+                                                           │  pipeline determinista + SQLite
 ```
 
 ## Componentes (`cloudflare/shield-worker/`)
 
-- `wrangler.jsonc` — `name: axio-shield-gateway`, DO `AUDIT`→`ShieldStore`
-  (`new_sqlite_classes`), `routes: [{pattern:"www.axiostaging.com/shield/*", zone_name:"axiostaging.com"}]`,
-  secretos `ANTHROPIC_API_KEY` + `SHIELD_INTERNAL_TOKEN`, `observability:true`.
+- `wrangler.jsonc` — `name: axio-shield-gateway`, DO `SHIELD`→`ShieldStore`
+  (`new_sqlite_classes`), `SHIELD_MODE: observe`, `routes: [{pattern:"www.axiostaging.com/shield/*", zone_name:"axiostaging.com"}]`,
+  secreto `SHIELD_INTERNAL_TOKEN`, `observability:true`.
 - `src/index.js` — router de `/shield/*` (ingest, tap, api/*, ws, human-gate con bearer interno).
 - `src/detection/*` + `src/agents/*` — port JS del pipeline (paridad con `backend/app`).
 - `src/store.js` — `ShieldStore` DO+SQLite (audit hash-chained, sesiones, incidentes).
@@ -46,8 +46,7 @@ Cloudflare  ── route: www.axiostaging.com/shield/*  ──▶  Worker axio-s
 ```bash
 # Prerrequisitos: wrangler autenticado en la cuenta Cloudflare de AXIO (misma de agent-gateway)
 cd "AXIO Shield/cloudflare/shield-worker"
-npm install
-wrangler secret put ANTHROPIC_API_KEY      # opcional; sin ella corre en modo stub
+ npm install
 wrangler secret put SHIELD_INTERNAL_TOKEN   # para el human-gate
 
 # Local

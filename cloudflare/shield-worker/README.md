@@ -9,7 +9,7 @@ mismo patrón que `agent-gateway` del sitio. Se monta **mismo-origen** bajo `/sh
 
 | Método · Ruta | Descripción |
 |---|---|
-| `GET /shield/health` | estado + modo stub |
+| `GET /shield/health` | estado + modo `observe` |
 | `POST /shield/ingest` | entrada del pipeline (eventos del SDK) |
 | `POST /shield/tap` | sensor server-side de tráfico crudo (anti-bypass del SDK) |
 | `GET /shield/api/incidents` · `/sessions` · `/coverage` · `/attack-graph` | lecturas del SOC |
@@ -21,8 +21,8 @@ mismo patrón que `agent-gateway` del sitio. Se monta **mismo-origen** bajo `/sh
 
 SENTINEL, ORACLE, TRACKER++ (swarm + kill-chain + **attack-path BloodHound-style**), WARDEN
 (integridad), SPECTER (identidad/A2A), HERALD, LOCKDOWN (human-gate), SCRIBE (audit hash-chained).
-Mapeo triple OWASP ASI / MITRE ATT&CK / ATLAS. Modo **stub** determinista si no hay
-`ANTHROPIC_API_KEY`.
+Mapeo triple OWASP ASI / MITRE ATT&CK / ATLAS. Esta implementación de producción es
+determinista y funciona en **observe mode**; no depende de modelos externos ni de Wazuh.
 
 ## Correr
 
@@ -39,7 +39,6 @@ curl localhost:8787/shield/api/audit/verify
 ## Deploy
 
 ```bash
-wrangler secret put ANTHROPIC_API_KEY     # opcional (sin ella: modo stub)
 wrangler secret put SHIELD_INTERNAL_TOKEN # human-gate
 wrangler deploy                            # descomentar `routes` en wrangler.jsonc primero
 ```

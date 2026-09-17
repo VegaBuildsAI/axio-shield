@@ -19,7 +19,7 @@ Iguales al AD lab, adaptados:
 | Entorno aislado (VLAN airgapped 192.168.250.0/24) | Simulador determinista local, solo `/ingest` en localhost (`ScopeGuard`) |
 | Debilidades intencionales documentadas | Portal-banco demo con superficie de ataque conocida |
 | Kali + Impacket + BloodHound + Hashcat | Simulador metadata-only (sin exploits/credenciales/red reales) |
-| Wazuh SIEM | Los 8 agentes defensores + audit log inmutable |
+| Monitoreo del AD lab | Los 8 agentes defensores + audit log inmutable del Worker |
 | Reproducible | `DeterministicClock` + `GroundTruthLog` + `evaluator` |
 
 **Seguridad:** el laboratorio nunca ejecuta exploits, shell, credenciales ni tráfico externo.
@@ -96,8 +96,8 @@ documenta sus límites reales:
   (`server_matches` autoritativos) cierra el bypass del SDK.
 - Una técnica **sin regla** en `RULE_WEIGHTS` no se detecta hasta que el bucle purple-team la
   incorpora. El catálogo crece por iteración, no se asume completo.
-- El modo **stub** (sin API key) usa clasificación determinista; el juicio de Claude
-  (Haiku/Sonnet) aporta cobertura extra en casos ambiguos cuando hay key.
+- La clasificación de esta implementación es determinista; no depende de Claude ni de
+  un SIEM externo para detectar, correlacionar o auditar.
 
 ## 8. Cómo correr el bucle
 

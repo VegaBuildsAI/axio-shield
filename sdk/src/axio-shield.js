@@ -23,6 +23,44 @@
     (script.getAttribute && script.getAttribute("data-endpoint")) ||
     "/ingest";
 
+  // Isolation boundary: the sensor is same-origin and pass-through only.
+  // Existing site agents and infrastructure routes are never inspected.
+  var PROTECTED_PREFIXES = [
+    "/api/",
+    "/mcp/",
+    "/.well-known/",
+    "/a2a",
+    "/agent-gateway",
+    "/shield/"
+  ];
+  var ORIGINAL_FETCH = window.fetch;
+
+  function resolveUrl(value) {
+    try {
+      if (value && value.url) value = value.url;
+      return new URL(String(value), window.location.href);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function isSameOrigin(url) {
+    return !!url && url.origin === window.location.origin;
+  }
+
+  function isProtectedPath(pathname) {
+    for (var i = 0; i < PROTECTED_PREFIXES.length; i++) {
+      var prefix = PROTECTED_PREFIXES[i];
+      if (pathname === prefix.slice(0, -1) || pathname.indexOf(prefix) === 0) return true;
+    }
+    return false;
+  }
+
+  var endpointUrl = resolveUrl(ENDPOINT);
+  var TELEMETRY_ENDPOINT = isSameOrigin(endpointUrl) && !isProtectedPath(endpointUrl.pathname)
+    ? endpointUrl.href
+    : "";
+
   function sessionId() {
     try {
       var sid = sessionStorage.getItem("axio_sid");
@@ -51,6 +89,7 @@
   }
 
   function send(kind, matches, features, extra) {
+    if (!TELEMETRY_ENDPOINT || !ORIGINAL_FETCH) return;
     var payload = {
       session_id: SID,
       kind: kind,
@@ -62,7 +101,8 @@
       extra: extra || {}
     };
     try {
-      fetch(ENDPOINT, {
+      // Use the original fetch reference so telemetry cannot re-enter the wrapper.
+      ORIGINAL_FETCH.call(window, TELEMETRY_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -121,16 +161,22 @@
   }, true);
 
   // --- fetch: inspecciona el cuerpo localmente (solo labels salen) ---
-  var _fetch = window.fetch;
-  if (_fetch) {
+  if (ORIGINAL_FETCH) {
     window.fetch = function (input, init) {
       try {
+        var requestUrl = resolveUrl(input);
+        // Never inspect, alter, or emit telemetry for existing agents,
+        // control-plane routes, or cross-origin requests.
+        if (!requestUrl || !isSameOrigin(requestUrl) || isProtectedPath(requestUrl.pathname)) {
+          return ORIGINAL_FETCH.apply(this, arguments);
+        }
         if (init && init.body && typeof init.body === "string") {
           var res = scanValues([init.body]);
-          if (res.matches.length) send("xhr", res.matches, res.features, { url: String(input) });
+          if (res.matches.length) send("xhr", res.matches, res.features, { route: requestUrl.pathname });
         }
       } catch (e) { /* ignore */ }
-      return _fetch.apply(this, arguments);
+      // Strict pass-through: preserve the original arguments and return value.
+      return ORIGINAL_FETCH.apply(this, arguments);
     };
   }
 

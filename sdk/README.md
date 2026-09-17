@@ -30,6 +30,15 @@ de patrones ocurre en el navegador; solo la conclusión (el label) viaja al back
 Si el backend no responde, el SDK no rompe nada: cae a modo pasivo (no bloquea, no lanza
 errores visibles al usuario).
 
+## Aislamiento de agentes existentes
+
+El sensor usa una referencia al `fetch` original y deja pasar intactos los argumentos,
+headers, body, respuesta y errores de cada request. No inspecciona ni genera telemetría para
+rutas existentes de agentes o control: `/api/*`, `/mcp/*`, `/.well-known/*`, `/a2a*`,
+`/agent-gateway*` y `/shield/*`. Solo acepta un endpoint de telemetría mismo-origen y
+reporta rutas sin query string ni fragmento. Si el endpoint es externo o inválido, el SDK
+se desactiva silenciosamente.
+
 ## Vocabulario de reglas
 
 Los labels de `rules.js` coinciden con `backend/app/detection/rules.py`. Cambiar uno

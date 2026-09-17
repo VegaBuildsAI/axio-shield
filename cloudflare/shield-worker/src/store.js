@@ -10,8 +10,10 @@ const WINDOW_SECS = 120
 const MIN_SESSIONS = 2
 
 function canonical(v) {
-  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']'
-  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}'
+  // Match JSON.stringify semantics while keeping deterministic key ordering:
+  // undefined object properties are omitted and undefined array entries become null.
+  if (Array.isArray(v)) return '[' + v.map((item) => item === undefined ? 'null' : canonical(item)).join(',') + ']'
+  if (v && typeof v === 'object') return '{' + Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}'
   return JSON.stringify(v)
 }
 async function sha256hex(s) {
@@ -91,6 +93,9 @@ export class ShieldStore extends DurableObject {
 
   // ---------- pipeline completo (SENTINEL→ORACLE→TRACKER→WARDEN→SPECTER→HERALD→SCRIBE) ----------
   async ingest(event) {
+    event.kind ??= 'dom_event'
+    event.extra ??= {}
+    event.features ??= {}
     event.ts ??= now(); event.event_id ??= uuid()
     const { score, matched } = scoreEvent(event)
     this.addEvent(event, matched, score)
@@ -140,16 +145,19 @@ export class ShieldStore extends DurableObject {
     return { ok: true, score, matched_rules: matched, trust, incident_id: inc.id }
   }
 
-  async action(incidentId, actionName, operator) {
+  async action(incidentId, actionName, operator, mode = 'observe') {
     const inc = [...this.incidents].reverse().find((i) => i.id === incidentId)
     const ACTIONS = { rate_limit: 'Rate-limiting dinámico', block_session: 'Sandbox/bloqueo de sesión', revoke_token: 'Revocación de token', dismiss: 'Descartar (falso positivo)' }
     if (!inc || !ACTIONS[actionName]) return { ok: false, error: 'incidente o acción inválida' }
-    inc.actions.push({ action: actionName, description: ACTIONS[actionName], operator, ts: now(), simulated: true })
-    inc.status = actionName === 'dismiss' ? 'dismissed' : 'contained'
+    const observeOnly = mode !== 'enforce'
+    inc.actions.push({ action: actionName, description: ACTIONS[actionName], operator, ts: now(), simulated: observeOnly, observe_only: observeOnly })
+    // Observe mode records the operator intent but never claims containment.
+    if (actionName === 'dismiss') inc.status = 'dismissed'
+    else if (!observeOnly) inc.status = 'contained'
     this.updateIncident(inc)
-    await this.record('LOCKDOWN', 'human_gate_action', inc.id, { action: actionName, operator, new_status: inc.status })
+    await this.record('LOCKDOWN', 'human_gate_action', inc.id, { action: actionName, operator, mode, enforced: !observeOnly, new_status: inc.status })
     this.broadcast({ type: 'update', incident: inc })
-    return { ok: true, incident: inc }
+    return { ok: true, mode, observe_only: observeOnly, incident: inc }
   }
 
   listIncidents() { return [...this.incidents].reverse() }
