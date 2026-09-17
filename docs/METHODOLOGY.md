@@ -111,4 +111,5 @@ curl /shield/api/coverage ; curl /shield/api/attack-graph
 curl /shield/api/audit/verify
 ```
 
-*Crédito de metodología: Active Directory Attack Lab — github.com/PabloSCybersec/Active-Directory-Attack-Lab*
+*Crédito de metodología: Active Directory Attack Lab — https://github.com/PabloSCybersec/Active-Directory-Attack-Lab*
+*Integración (fork, sin tocar el repo original): https://github.com/VegaBuildsAI/Active-Directory-Attack-Lab/tree/axio-shield-integration*

@@ -16,6 +16,33 @@ a clientes (bancos, gobierno).
 
 ---
 
+## Metodología y créditos — Active Directory Attack Lab
+
+La disciplina purple-team de AXIO Shield (atacar → monitorear → identificar el gap → escribir la
+regla → re-testear, con mapeo a **MITRE ATT&CK** y grafo de rutas estilo **BloodHound**) está
+**adaptada del [Active Directory Attack Lab](https://github.com/PabloSCybersec/Active-Directory-Attack-Lab)
+de PabloSCybersec**. Todo el crédito de esa metodología es de Pablo.
+
+- Detalle: [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) (bucle purple-team, triple mapeo
+  **OWASP ASI / MITRE ATT&CK / MITRE ATLAS**, matriz de cobertura "atrapado vs. escapado").
+- Integración documentada en un **fork** (sin tocar el repo de Pablo):
+  [`VegaBuildsAI/Active-Directory-Attack-Lab` @ `axio-shield-integration`](https://github.com/VegaBuildsAI/Active-Directory-Attack-Lab/tree/axio-shield-integration).
+
+**Traducción AD → agéntico** (cada técnica tiene su defensor):
+
+| Técnica AD | ATT&CK | Defensor AXIO Shield |
+|---|---|---|
+| BloodHound (enumeración/grafo) | T1087 | TRACKER++ (attack-path) |
+| Kerberoasting / cosecha de credenciales | T1558 | SPECTER |
+| Pass-the-Hash (movimiento lateral) | T1550 | TRACKER++ + SPECTER |
+| DCSync / escalada de privilegios | T1068 | SPECTER |
+| Golden Ticket / persistencia | T1136 | SPECTER / WARDEN |
+
+> Los agentes atacantes (familias recon/credential/lateral/privesc/persistence en `simulator/`)
+> son **solo para entrenar y validar** a los defensores — nunca se despliegan.
+
+---
+
 ## Qué hay dentro
 
 ```
